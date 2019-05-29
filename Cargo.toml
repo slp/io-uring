@@ -1,0 +1,15 @@
+[package]
+name = "io-uring"
+version = "0.1.0"
+authors = ["Sergio Lopez <slp@redhat.com>"]
+description = "Wrapper providing a safe and simple way to access liburing-sys features."
+edition = "2018"
+license = "LGPL-2.1-only"
+repository = "https://github.com/slp/io-uring"
+
+[dependencies]
+libc = "0.2.55"
+liburing-sys = "0.1.2"
+
+[dev.dependencies]
+tempfile = "3.0.8"
