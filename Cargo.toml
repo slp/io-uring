@@ -5,7 +5,11 @@ authors = ["Sergio Lopez <slp@redhat.com>"]
 description = "Wrapper providing a safe and simple way to access liburing-sys features."
 edition = "2018"
 license = "LGPL-2.1-only"
+readme = "README.md"
 repository = "https://github.com/slp/io-uring"
+categories = ["asynchronous", "filesystem"]
+keywords = ["io", "async", "non-blocking", "uring"]
+documentation = "https://docs.rs/io-uring"
 
 [dependencies]
 libc = "0.2.55"
