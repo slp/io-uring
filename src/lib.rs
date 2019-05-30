@@ -349,8 +349,9 @@ impl UringQueue {
             }
 
             unsafe { libc::free(req.iov.iov_base) };
-            unsafe { libc::free(req as *const _ as *mut core::ffi::c_void) };
         }
+        unsafe { libc::free(req as *const _ as *mut core::ffi::c_void) };
+
         unsafe { io_uring_cqe_seen(&mut self.ring, cqe) };
         Ok(Some(req.client_cookie))
     }
