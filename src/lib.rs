@@ -34,9 +34,9 @@
 //! ## Example
 //!
 //! ```
-//! use io_uring::UringQueue;
+//! use io_uring::{Error, UringQueue};
 //! use std::fs::File;
-//! use std::io::{Error, ErrorKind};
+//! use std::io;
 //! use std::os::unix::io::AsRawFd;
 //!
 //! fn read_exact(file: File, buf: &mut [u8], offset: i64, wait: bool) -> Result<(), Error> {
@@ -52,10 +52,10 @@
 //!         }
 //!         None => {
 //!             assert!(!wait);
-//!             Err(Error::new(
-//!                 ErrorKind::WouldBlock,
+//!             Err(Error::IOError(io::Error::new(
+//!                 io::ErrorKind::WouldBlock,
 //!                 "completion queue was empty and wait == false",
-//!             ))
+//!             )))
 //!         }
 //!     }
 //! }
@@ -364,15 +364,15 @@ impl Drop for UringQueue {
 
 #[cfg(test)]
 mod tests {
-    use crate::UringQueue;
+    use crate::{Error, UringQueue};
     use std::fs::File;
-    use std::io::{Error, Write};
+    use std::io::Write;
     use std::os::unix::io::AsRawFd;
     use tempfile::tempfile;
 
     fn prepare_test_file() -> Result<File, Error> {
-        let mut file = tempfile()?;
-        writeln!(file, "Test file")?;
+        let mut file = tempfile().unwrap();
+        writeln!(file, "Test file").unwrap();
         Ok(file)
     }
 
