@@ -1,6 +1,6 @@
 [package]
 name = "io-uring"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Sergio Lopez <slp@redhat.com>"]
 description = "Wrapper providing a safe and simple way to access liburing-sys features."
 edition = "2018"
