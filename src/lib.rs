@@ -225,7 +225,7 @@ impl UringQueue {
         };
 
         let sqe = unsafe { io_uring_get_sqe(&mut self.ring) };
-        if sqe == std::ptr::null_mut() {
+        if sqe.is_null() {
             panic!("can't get sqe");
         }
 
@@ -262,7 +262,7 @@ impl UringQueue {
         };
 
         let sqe = unsafe { io_uring_get_sqe(&mut self.ring) };
-        if sqe == std::ptr::null_mut() {
+        if sqe.is_null() {
             panic!("can't get sqe");
         }
 
@@ -286,13 +286,13 @@ impl UringQueue {
     /// return `None`.
     pub fn get_completion(&mut self, wait: bool) -> Result<Option<u64>, Error> {
         let mut cqe: *mut io_uring_cqe = unsafe { std::mem::zeroed() };
-        let ret;
 
-        if wait {
-            ret = unsafe { io_uring_wait_cqe(&mut self.ring, &mut cqe) };
+        let ret = if wait {
+            unsafe { io_uring_wait_cqe(&mut self.ring, &mut cqe) }
         } else {
-            ret = unsafe { io_uring_peek_cqe(&mut self.ring, &mut cqe) };
-        }
+            unsafe { io_uring_peek_cqe(&mut self.ring, &mut cqe) }
+        };
+
         if ret < 0 {
             return Err(Error::CantCheckCompletionQueue(
                 io::Error::from_raw_os_error(ret),
@@ -314,7 +314,7 @@ impl UringQueue {
                 req.iov.iov_len -= (*cqe).res as usize;
 
                 let sqe = io_uring_get_sqe(&mut self.ring);
-                if sqe == std::ptr::null_mut() {
+                if sqe.is_null() {
                     panic!("can't get sqe");
                 }
 
