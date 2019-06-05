@@ -43,7 +43,8 @@
 //!     let mut queue = UringQueue::new(128)?;
 //!     let cookie: u64 = 1234;
 //!
-//!     queue.submit_read(file.as_raw_fd(), buf, offset, cookie)?;
+//!     queue.prepare_read(file.as_raw_fd(), buf, offset, cookie)?;
+//!     queue.submit_requests()?;
 //!     match queue.get_completion(wait)? {
 //!         Some(c) => {
 //!             assert!(c == cookie);
@@ -203,10 +204,10 @@ impl UringQueue {
         Ok(req)
     }
 
-    /// Submit a request for reading from `fd`, starting at `offset`, and storing the
-    /// result in `buf`. `cookie` is an arbitrary u64 value that can be used to keep
-    /// track of the request.
-    pub fn submit_read(
+    /// Prepare and queue a request for reading from `fd`, starting at `offset`, and
+    /// storing the result in `buf`. `cookie` is an arbitrary u64 value that can be
+    /// used to keep track of the request.
+    pub fn prepare_read(
         &mut self,
         fd: RawFd,
         buf: &mut [u8],
@@ -232,18 +233,13 @@ impl UringQueue {
         unsafe { io_uring_prep_readv(sqe, fd, &mut (*req).iov, 1, offset) };
         unsafe { (*sqe).user_data = req as u64 };
 
-        let ret = unsafe { io_uring_submit(&mut self.ring) };
-        if ret < 0 {
-            return Err(Error::CantSubmitRequest(io::Error::from_raw_os_error(ret)));
-        }
-
         Ok(())
     }
 
-    /// Submit a request for writing the contents of `buf` to `fd`, starting at
-    /// `offset`. `cookie` is an arbitrary u64 value that can be used to keep
-    /// track of the request.
-    pub fn submit_write(
+    /// Prepare and queue a request for writing the contents of `buf` to `fd`,
+    /// starting at `offset`. `cookie` is an arbitrary u64 value that can be
+    /// used to keep track of the request.
+    pub fn prepare_write(
         &mut self,
         fd: RawFd,
         buf: &[u8],
@@ -269,6 +265,11 @@ impl UringQueue {
         unsafe { io_uring_prep_writev(sqe, fd, &mut (*req).iov, 1, offset) };
         unsafe { (*sqe).user_data = req as u64 };
 
+        Ok(())
+    }
+
+    /// Notify the kernel that there are pending requests in the queue.
+    pub fn submit_requests(&mut self) -> Result<(), Error> {
         let ret = unsafe { io_uring_submit(&mut self.ring) };
         if ret < 0 {
             return Err(Error::CantSubmitRequest(io::Error::from_raw_os_error(ret)));
@@ -389,7 +390,8 @@ mod tests {
         let mut buf: [u8; 1] = [0u8];
         let file = prepare_test_file()?;
 
-        queue.submit_read(file.as_raw_fd(), &mut buf[..], 0, 0)?;
+        queue.prepare_read(file.as_raw_fd(), &mut buf[..], 0, 0)?;
+        queue.submit_requests()?;
         Ok(())
     }
 
@@ -399,7 +401,8 @@ mod tests {
         let buf: [u8; 1] = [0u8];
         let file = prepare_test_file()?;
 
-        queue.submit_write(file.as_raw_fd(), &buf[..], 0, 0)?;
+        queue.prepare_write(file.as_raw_fd(), &buf[..], 0, 0)?;
+        queue.submit_requests()?;
         Ok(())
     }
 
@@ -410,7 +413,8 @@ mod tests {
         let mut buf: [u8; 1] = [0u8];
         let file = prepare_test_file()?;
 
-        queue.submit_read(file.as_raw_fd(), &mut buf[..], 0, cookie)?;
+        queue.prepare_read(file.as_raw_fd(), &mut buf[..], 0, cookie)?;
+        queue.submit_requests()?;
         let completion_cookie_opt = queue.get_completion(true)?;
         assert!(completion_cookie_opt.is_some());
         let completion_cookie = completion_cookie_opt.unwrap();
@@ -431,7 +435,8 @@ mod tests {
         let mut buf: [u8; 1] = [0u8];
         let file = prepare_test_file()?;
 
-        queue.submit_read(file.as_raw_fd(), &mut buf[..], 0, cookie)?;
+        queue.prepare_read(file.as_raw_fd(), &mut buf[..], 0, cookie)?;
+        queue.submit_requests()?;
         let completion_cookie_opt = queue.get_completion(true)?;
         assert!(completion_cookie_opt.is_some());
         let completion_cookie = completion_cookie_opt.unwrap();
@@ -457,7 +462,8 @@ mod tests {
 
         let file = prepare_test_file()?;
 
-        queue.submit_write(file.as_raw_fd(), &test_str.as_bytes(), 0, wcookie)?;
+        queue.prepare_write(file.as_raw_fd(), &test_str.as_bytes(), 0, wcookie)?;
+        queue.submit_requests()?;
         let completion_cookie_opt = queue.get_completion(true)?;
         assert!(completion_cookie_opt.is_some());
         let completion_cookie = completion_cookie_opt.unwrap();
@@ -469,7 +475,8 @@ mod tests {
         );
 
         buf.resize_with(test_str.as_bytes().len(), Default::default);
-        queue.submit_read(file.as_raw_fd(), &mut buf[..], 0, rcookie)?;
+        queue.prepare_read(file.as_raw_fd(), &mut buf[..], 0, rcookie)?;
+        queue.submit_requests()?;
         let completion_cookie_opt = queue.get_completion(true)?;
         assert!(completion_cookie_opt.is_some());
         let completion_cookie = completion_cookie_opt.unwrap();
