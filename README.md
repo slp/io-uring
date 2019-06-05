@@ -8,7 +8,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-io-uring = "0.1"
+io-uring = "0.2"
 ```
 
 # License
